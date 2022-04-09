@@ -1,0 +1,6 @@
+<<<<<<< HEAD
+Released by Thkaspar on itch.io
+=======
+Released by Thkaspar on itch.io
+>>>>>>> main
+https://thkaspar.itch.io/micro-character-bases
