@@ -13,10 +13,9 @@
  *   @details Constructs a new vector2 from an existing.
  *   @return  void
  */
-Vector2::Vector2(const Vector2& rhs)
-{
-  this->x = rhs.x;
-  this->y = rhs.y;
+Vector2::Vector2(const Vector2 &rhs) {
+    this->x = rhs.x;
+    this->y = rhs.y;
 }
 
 /**
@@ -24,12 +23,11 @@ Vector2::Vector2(const Vector2& rhs)
  *   @details Updates vector2 from an existing.
  *   @return  void
  */
-Vector2& Vector2::operator=(const Vector2& rhs)
-{
-  this->x = rhs.x;
-  this->y = rhs.y;
+Vector2 &Vector2::operator=(const Vector2 &rhs) {
+    this->x = rhs.x;
+    this->y = rhs.y;
 
-  return *this;
+    return *this;
 }
 
 /**
@@ -37,17 +35,15 @@ Vector2& Vector2::operator=(const Vector2& rhs)
  *   @details Turns the vector into a unit vector.
  *   @return  void
  */
-void Vector2::normalise()
-{
-  float magnitude = sqrtf((x * x) + (y * y));
+void Vector2::normalise() {
+    float magnitude = sqrtf((x * x) + (y * y));
 
-  if (!static_cast<bool>(magnitude))
-  {
-    return;
-  }
+    if (!static_cast<bool>(magnitude)) {
+        return;
+    }
 
-  x /= magnitude;
-  y /= magnitude;
+    x /= magnitude;
+    y /= magnitude;
 }
 
 /**
@@ -55,10 +51,9 @@ void Vector2::normalise()
  *   @details Uses a single scalar value to adjust the vector.
  *   @return  void
  */
-Vector2 Vector2::operator*(float scalar)
-{
-  Vector2 vec(*this);
-  vec.x *= scalar;
-  vec.y *= scalar;
-  return vec;
+Vector2 Vector2::operator*(float scalar) {
+    Vector2 vec(*this);
+    vec.x *= scalar;
+    vec.y *= scalar;
+    return vec;
 }

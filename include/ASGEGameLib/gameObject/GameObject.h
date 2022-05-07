@@ -8,23 +8,22 @@
 #include <Engine/Keys.hpp>
 #include <string>
 
-class GameObject
-{
- public:
-  GameObject()          = default;
-  virtual ~GameObject() = default;
+class GameObject {
+public:
+    GameObject() = default;
+    virtual ~GameObject() = default;
 
-  virtual void goRender(ASGE::Renderer* renderer) const;
-  virtual bool addSpriteComponent(
-    const std::string& texture_file_path, std::unique_ptr<SpriteComponent> unique_sc,
-    ASGE::Renderer* renderer, int z_order);
-  virtual bool clickCollision(ASGE::SharedEventData data);
+    virtual void goRender(ASGE::Renderer *renderer) const;
+    virtual bool addSpriteComponent(
+            const std::string &texture_file_path, std::unique_ptr<SpriteComponent> unique_sc,
+            ASGE::Renderer *renderer, int z_order);
+    virtual bool clickCollision(ASGE::SharedEventData data);
 
-  [[nodiscard]] const std::unique_ptr<SpriteComponent>& sprite() const;
+    [[nodiscard]] const std::unique_ptr<SpriteComponent> &sprite() const;
 
-  bool visibility = false;
+    bool visibility = false;
 
-  std::unique_ptr<SpriteComponent> sprite_component = nullptr;
+    std::unique_ptr<SpriteComponent> sprite_component = nullptr;
 };
 
-#endif // NOTMARIOGAME_GAMEOBJECT_H
+#endif// NOTMARIOGAME_GAMEOBJECT_H

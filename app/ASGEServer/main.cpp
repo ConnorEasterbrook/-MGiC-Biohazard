@@ -3,11 +3,9 @@
 //
 
 #include "ASGEServer.hpp"
-int main(int /*argc*/, char* /*argv*/[])
-{
-  ASGEServer server{};
-  if (server.init())
-  {
-    return server.run();
-  }
+int main(int /*argc*/, char * /*argv*/[]) {
+    ASGEServer server{};
+    if (server.init()) {
+        return server.run();
+    }
 }

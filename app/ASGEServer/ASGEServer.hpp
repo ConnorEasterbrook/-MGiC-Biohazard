@@ -6,17 +6,16 @@
 #define ASGENETGAME_ASGESERVER_HPP
 
 #include <ASGEGameLib/GCNetServer.hpp>
-class ASGEServer
-{
- public:
-  ASGEServer()  = default;
-  ~ASGEServer() = default;
+class ASGEServer {
+public:
+    ASGEServer() = default;
+    ~ASGEServer() = default;
 
-  bool init();
-  int run();
+    bool init();
+    int run();
 
- private:
-  GCNetServer net_server;
+private:
+    GCNetServer net_server;
 };
 
-#endif // ASGENETGAME_ASGESERVER_HPP
+#endif// ASGENETGAME_ASGESERVER_HPP

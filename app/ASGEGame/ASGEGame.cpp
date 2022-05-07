@@ -65,7 +65,7 @@ void ASGENetGame::initMenu()
 
     for (int i = 0; i < amount_menu_buttons; i++)
     {
-        if (i == 0)
+        if (i < 1)
         {
             menu_buttons[i].addSpriteComponent(
                     "data/images/buttons/Start_Button.png",
@@ -73,7 +73,7 @@ void ASGENetGame::initMenu()
                     renderer.get(),
                     1);
         }
-        else if (i == 1)
+        else if (i < 2)
         {
             menu_buttons[i].addSpriteComponent(
                     "data/images/buttons/Join_Button.png",
@@ -81,7 +81,7 @@ void ASGENetGame::initMenu()
                     renderer.get(),
                     1);
         }
-        else if (i == 2)
+        else if (i < 3)
         {
             menu_buttons[i].addSpriteComponent(
                     "data/images/buttons/Exit_Button.png",
@@ -109,17 +109,33 @@ void ASGENetGame::initLobby()
 
 void ASGENetGame::initGame()
 {
-    //  initTileInit();
     tiles.initTileInit(renderer.get());
+
     initCharacterSelection();
     initBattle();
 }
 
 void ASGENetGame::initCharacterSelection()
 {
+    initCharacterSelectionButtons();
+    initCharacterSelectionPngs();
+    initCharacterSelectionText();
+}
+
+void ASGENetGame::initCharacterSelectionButtons()
+{
     amount_character_select_buttons = static_cast<int>(std::size(character_select_buttons));
     float half_button_width = (Buttons().getSpriteSheetWidth() * Buttons().getSpriteScaler()) / 2;
     float half_button_height = (Buttons().getSpriteSheetHeight() * Buttons().getSpriteScaler() / 2);
+
+    character_select_play.setSpriteSheetWidth(114);
+    character_select_play.addSpriteComponent(
+            "data/images/buttons/Play_Button.png", std::make_unique<SpriteComponent>(), renderer.get(), 1);
+    character_select_play.sprite()->getSprite()->xPos(
+            game_window_width / 2 -
+            ((character_select_play.getSpriteSheetWidth() * character_select_play.getSpriteScaler()) / 2));
+    character_select_play.sprite()->getSprite()->yPos(game_window_height / 2 - half_button_height);
+    character_select_play.setIsActive(true);
 
     for (int i = 0; i < amount_character_select_buttons; i++)
     {
@@ -175,7 +191,10 @@ void ASGENetGame::initCharacterSelection()
             }
         }
     }
+}
 
+void ASGENetGame::initCharacterSelectionPngs()
+{
     amount_character_select_pngs = static_cast<int>(std::size(character_select_pngs));
 
     for (int i = 0; i < amount_character_select_pngs; i++)
@@ -183,7 +202,7 @@ void ASGENetGame::initCharacterSelection()
         if (i < 2)
         {
             character_select_pngs[i].addSpriteComponent(
-                    "data/images/characterSelection/Orc_Character.png",
+                    "data/images/characterSelection/Skeleton_Character.png",
                     std::make_unique<SpriteComponent>(),
                     renderer.get(),
                     1);
@@ -209,7 +228,7 @@ void ASGENetGame::initCharacterSelection()
         else
         {
             character_select_pngs[i].addSpriteComponent(
-                    "data/images/characterSelection/Skeleton_Character.png",
+                    "data/images/characterSelection/Orc_Character.png",
                     std::make_unique<SpriteComponent>(),
                     renderer.get(),
                     1);
@@ -238,7 +257,10 @@ void ASGENetGame::initCharacterSelection()
                                                            3);
         }
     }
+}
 
+void ASGENetGame::initCharacterSelectionText()
+{
     for (int i = 0; i < amount_character_select_pngs; i++)
     {
         setupTextRender(
@@ -395,6 +417,8 @@ void ASGENetGame::initUnitSprite()
                 add_x -= 24;
             }
         }
+
+        units[i].visibility = true;
     }
 }
 
@@ -432,9 +456,24 @@ void ASGENetGame::keyHandlerMenu(const auto *key)
 {
     if (key->key == ASGE::KEYS::KEY_ENTER && key->action == ASGE::KEYS::KEY_RELEASED)
     {
-        if (menu_option == 0 || menu_option == 1)
+        if (menu_option == 0)
         {
+            general_state = GeneralState::GAME;
+        }
+        else if (menu_option == 1)
+        {
+            lobby_connections = lobby_connections + 1;
+            multiplayer = true;
+            player2 = net_client->player2;
+            if (!player2)
+            {
+                player1 = true;
+            }
+            sendInitPacket();
+
             general_state = GeneralState::LOBBY;
+
+            sendIntPacket(lobby_connections);
         }
         else if (menu_option == 2)
         {
@@ -468,40 +507,51 @@ void ASGENetGame::keyHandlerMenu(const auto *key)
 
 void ASGENetGame::keyHandlerLobby(const auto *key)
 {
-    if (key->key == ASGE::KEYS::KEY_1 && key->action == ASGE::KEYS::KEY_RELEASED)
+    if (general_state == GeneralState::LOBBY)
     {
-        general_state = GeneralState::GAME;
-    }
-
-    if (key->key >= 32 && key->key <= 90 && key->action == ASGE::KEYS::KEY_RELEASED)
-    {
-        user_input += static_cast<char>(key->key);
-    }
-
-    if (key->key == ASGE::KEYS::KEY_BACKSPACE && key->action == ASGE::KEYS::KEY_RELEASED)
-    {
-        if (user_input.length() != 0)
+        if (key->key == ASGE::KEYS::KEY_1 && key->action == ASGE::KEYS::KEY_RELEASED)
         {
-            user_input.erase(user_input.length() - 1);
+            if (player1 && lobby_connections == 2)
+            {
+                general_state = GeneralState::GAME;
+                sendGeneralStatePacket(2);
+            }
         }
-    }
 
-    if (key->key == ASGE::KEYS::KEY_ENTER && key->action == ASGE::KEYS::KEY_RELEASED)
-    {
-        std::cout << user_input << std::endl;
-        old_user_input = user_input;
-        net_client->chat.emplace_back(old_user_input + "\n");
-        MyPacket str_packet;
-        str_packet << MyPacket::PacketID::CHAT;
-        str_packet << old_user_input;
-        net_client->socket.send(
-                reinterpret_cast<const std::byte *>(&str_packet.data()[0]), str_packet.length());
-
-        user_input = "";
-
-        if (old_user_input == "PLAY")
+        if (key->key >= 32 && key->key <= 90 && key->action == ASGE::KEYS::KEY_RELEASED)
         {
-            general_state = GeneralState::GAME;
+            user_input += static_cast<char>(key->key);
+        }
+
+        if (key->key == ASGE::KEYS::KEY_BACKSPACE && key->action == ASGE::KEYS::KEY_RELEASED)
+        {
+            if (user_input.length() != 0)
+            {
+                user_input.erase(user_input.length() - 1);
+            }
+        }
+
+        if (key->key == ASGE::KEYS::KEY_ENTER && key->action == ASGE::KEYS::KEY_RELEASED)
+        {
+            std::cout << user_input << std::endl;
+            old_user_input = user_input;
+            net_client->chat.emplace_back(old_user_input + "\n");
+            MyPacket str_packet;
+            str_packet << MyPacket::PacketID::CHAT;
+            str_packet << old_user_input;
+            net_client->socket.send(
+                    reinterpret_cast<const std::byte *>(&str_packet.data()[0]), str_packet.length());
+
+            user_input = "";
+
+            if (old_user_input == "PLAY")
+            {
+                if (player1 == true && lobby_connections == 2)
+                {
+                    general_state = GeneralState::GAME;
+                    sendGeneralStatePacket(GeneralState::GAME);
+                }
+            }
         }
     }
 }
@@ -572,66 +622,95 @@ void ASGENetGame::keyHandlerBattleMapUnits(const auto *key)
 {
     if (units[unit_selected].visibility)
     {
-        if (
-                key->key == ASGE::KEYS::KEY_W && key->action == ASGE::KEYS::KEY_RELEASED &&
-                units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
+        if (tiles.getWalkable(units[unit_selected]))
         {
-            units[unit_selected].moveUnit("up");
-
-            std::cout << units[unit_selected].ap << std::endl;
-        }
-        if (
-                key->key == ASGE::KEYS::KEY_A && key->action == ASGE::KEYS::KEY_RELEASED &&
-                units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
-        {
-            units[unit_selected].moveUnit("left");
-
-            std::cout << units[unit_selected].ap << std::endl;
-        }
-        if (
-                key->key == ASGE::KEYS::KEY_S && key->action == ASGE::KEYS::KEY_RELEASED &&
-                units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
-        {
-            units[unit_selected].moveUnit("down");
-
-            std::cout << units[unit_selected].ap << std::endl;
-        }
-        if (
-                key->key == ASGE::KEYS::KEY_D && key->action == ASGE::KEYS::KEY_RELEASED &&
-                units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
-        {
-            units[unit_selected].moveUnit("right");
-
-            std::cout << units[unit_selected].ap << std::endl;
-        }
-
-        if (key->key == ASGE::KEYS::KEY_ENTER && key->action == ASGE::KEYS::KEY_RELEASED)
-        {
-            old_unit_selected = unit_selected;
-            units[old_unit_selected].refreshUnitDetails();
-
-            if (unit_selected < 7)
+            old_x_pos = units[unit_selected].sprite()->getX();
+            old_y_pos = units[unit_selected].sprite()->getY();
+            if ((!player1 && turn_over) || (!player2 && !turn_over))
             {
-                if (!turn_over)
+                if (
+                        key->key == ASGE::KEYS::KEY_W && key->action == ASGE::KEYS::KEY_RELEASED &&
+                        units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
                 {
-                    unit_selected += 4;
-                    std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
-                    turn_over = true;
+                    units[unit_selected].moveUnit("up");
+
+                    std::cout << units[unit_selected].ap << std::endl;
                 }
-                else
+                if (
+                        key->key == ASGE::KEYS::KEY_A && key->action == ASGE::KEYS::KEY_RELEASED &&
+                        units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
                 {
-                    unit_selected -= 3;
-                    std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
-                    turn_over = false;
+                    units[unit_selected].moveUnit("left");
+
+                    std::cout << units[unit_selected].ap << std::endl;
+                }
+                if (
+                        key->key == ASGE::KEYS::KEY_S && key->action == ASGE::KEYS::KEY_RELEASED &&
+                        units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
+                {
+                    units[unit_selected].moveUnit("down");
+                    std::cout << units[unit_selected].ap << std::endl;
+                }
+                if (
+                        key->key == ASGE::KEYS::KEY_D && key->action == ASGE::KEYS::KEY_RELEASED &&
+                        units[unit_selected].ap - units[unit_selected].getMovementCost() >= 0)
+                {
+                    units[unit_selected].moveUnit("right");
+
+                    std::cout << units[unit_selected].ap << std::endl;
+                }
+
+
+                if (key->key == ASGE::KEYS::KEY_ENTER && key->action == ASGE::KEYS::KEY_RELEASED)
+                {
+                    keyHandlerBattleMapUnitsEndTurn();
                 }
             }
-            else
-            {
-                unit_selected = 0;
-                turn_over = false;
-                std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
-            }
         }
+    }
+}
+
+void ASGENetGame::keyHandlerBattleMapUnitsEndTurn()
+{
+    old_unit_selected = unit_selected;
+    units[old_unit_selected].refreshUnitDetails();
+
+    if (unit_selected < 7)
+    {
+        if (!turn_over)
+        {
+
+            unit_selected += 4;
+            std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
+            turn_over = true;
+            if (!player2 && multiplayer)
+            {
+                net_client->turn_over = turn_over;
+            }
+            endTurnPacket();
+        }
+        else
+        {
+            unit_selected -= 3;
+            std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
+            turn_over = false;
+            if (!player1 && multiplayer)
+            {
+                net_client->turn_over = turn_over;
+            }
+            endTurnPacket();
+        }
+    }
+    else
+    {
+        unit_selected = 0;
+        turn_over = false;
+        if (!player1 && multiplayer)
+        {
+            net_client->turn_over = turn_over;
+        }
+        endTurnPacket();
+        std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
     }
 }
 
@@ -678,60 +757,102 @@ void ASGENetGame::clickHandler(ASGE::SharedEventData data)
 
 void ASGENetGame::clickHandlerCharacterSelection(ASGE::SharedEventData data)
 {
+    if (game_state == GameState::GAMEPLAY)
+    {
+        if (character_select_play.clickCollision(data))
+        {
+            character_select_play.setIsActive(false);
+            game_state = GameState::BATTLE;
+
+            if (!player1 && multiplayer)
+            {
+                player2Packet();
+            }
+            else if (!player2 && multiplayer)
+            {
+                player1Packet();
+            }
+        }
+    }
+    else
+    {
+        character_select_play.setIsActive(true);
+    }
+
     for (int i = 0; i < amount_character_select_buttons; i++)
     {
         if (character_select_buttons[i].clickCollision(data))
         {
             character_select_buttons[i].setIsActive(false);
-            if (p1_unit_sniper + p1_unit_medic < 4)
+            if (!player2)
             {
-                switch (i)
-                {
-                    case 0:
-                        p1_unit_sniper++;
+                if (p1_unit_sniper + p1_unit_medic < 4)
 
-                        break;
-                    case 1:
-                        p1_unit_medic++;
-                        break;
+                {
+                    switch (i)
+                    {
+                        case 0:
+                            p1_unit_sniper++;
+
+                            break;
+                        case 1:
+                            p1_unit_medic++;
+                            break;
+                    }
                 }
             }
-            if (p2_unit_sniper + p2_unit_medic < 4)
+            if (!player1)
             {
-                switch (i)
+                if (p2_unit_sniper + p2_unit_medic < 4)
                 {
-                    case 3:
-                        p2_unit_sniper++;
-                        break;
-                    case 4:
-                        p2_unit_medic++;
-                        break;
+                    switch (i)
+                    {
+                        case 3:
+                            p2_unit_sniper++;
+                            break;
+                        case 4:
+                            p2_unit_medic++;
+                            break;
+                    }
                 }
             }
             switch (i)
             {
+
                 case 6:
-                    if (p1_unit_sniper > 0)
+                    if (!player2)
                     {
-                        p1_unit_sniper--;
+                        if (p1_unit_sniper > 0)
+                        {
+                            p1_unit_sniper--;
+                        }
                     }
                     break;
                 case 7:
-                    if (p1_unit_medic > 0)
+                    if (!player2)
                     {
-                        p1_unit_medic--;
+                        if (p1_unit_medic > 0)
+                        {
+                            p1_unit_medic--;
+                        }
                     }
                     break;
                 case 9:
-                    if (p2_unit_sniper > 0)
+                    if (!player1)
                     {
-                        p2_unit_sniper--;
+                        if (p2_unit_sniper > 0)
+                        {
+                            p2_unit_sniper--;
+                        }
                     }
                     break;
                 case 10:
-                    if (p2_unit_medic > 0)
+                    if (!player2)
                     {
-                        p2_unit_medic--;
+                        if (p2_unit_medic > 0)
+                        {
+                            p2_unit_medic--;
+                        }
                     }
                     break;
             }
@@ -747,23 +868,30 @@ void ASGENetGame::clickHandlerBattleMap(ASGE::SharedEventData data)
 {
     for (int i = 0; i < unit_count; i++)
     {
-        if (units[i].clickCollision(data) && units[i].in_range)
+        if ((!player1 && turn_over) || (!player2 && !turn_over))
         {
-            std::cout << "unit type: " << units[i].getUnitType() << std::endl;
+            if (units[i].clickCollision(data) && units[i].in_range)
+            {
+                std::cout << "unit type: " << units[i].getUnitType() << std::endl;
 
-            if (!ability_mode)
-            {
-                if (
-                        units[i].team_number != units[unit_selected].team_number &&
-                        units[unit_selected].ap - units[unit_selected].getAttackCost() >= 0)
+                if (!ability_mode)
                 {
-                    units[unit_selected].attackUnit();
-                    units[i].updateHealth(units[unit_selected].unit_damage, true);
+                    if (
+                            units[i].team_number != units[unit_selected].team_number &&
+                            units[unit_selected].ap - units[unit_selected].getAttackCost() >= 0)
+                    {
+                        units[unit_selected].attackUnit();
+                        units[i].updateHealth(units[unit_selected].unit_damage, true);
+                    }
                 }
-            }
-            else
-            {
-                clickHandlerBattleMapAbilities(i);
+                else
+                {
+                    clickHandlerBattleMapAbilities(i);
+                }
+                if (multiplayer)
+                {
+                    unitPacket();
+                }
             }
         }
     }
@@ -834,6 +962,25 @@ void ASGENetGame::updateLobby()
 
         join_host = true;
     }
+    lobby_connections = lobby_connections + net_client->lobby;
+    net_client->lobby = 0;
+    if (player2)
+    {
+
+
+        if (net_client->state == 0)
+        {
+            general_state = GeneralState::MENU;
+        }
+        if (net_client->state == 1)
+        {
+            general_state = GeneralState::LOBBY;
+        }
+        if (net_client->state == 2)
+        {
+            general_state = GeneralState::GAME;
+        }
+    }
     updateLobbyChat();
 }
 
@@ -862,6 +1009,7 @@ void ASGENetGame::updateGameplay()
 {
     for (int i = 0; i < amount_character_select_pngs; i++)
     {
+
         switch (i)
         {
             case 0:
@@ -891,20 +1039,85 @@ void ASGENetGame::updateGameplay()
 void ASGENetGame::updateBattleMap(const ASGE::GameTime &us)
 {
     game_time -= static_cast<float>(us.deltaInSecs());
-
+    player1_in_game = net_client->in_game1;
+    player2_in_game = net_client->in_game2;
     player.visibility = true;
     player.playerUpdate();
-
-#pragma unroll(1)
-    for (int i = 0; i < unit_count; i++)
+    if (!player1 && multiplayer)
     {
-        units[i].setUnitCount(team_size, p1_unit_sniper, p2_unit_sniper, p1_unit_medic, p2_unit_medic);
-        units[i].setUnitType();
-        units[i].updateUnitDetails();
+        p1_unit_medic = net_client->p1_medic;
+        p1_unit_sniper = net_client->p1_sniper;
+        player2_in_game = true;
+        MyPacket init_packet;
+        init_packet << MyPacket::PacketID::INGAME2;
+        init_packet << true;
+        net_client->socket.send(&init_packet.data()[0], init_packet.length());
+    }
+    else if (!player2 && multiplayer)
+    {
+        p2_unit_medic = net_client->p2_medic;
+        p2_unit_sniper = net_client->p2_sniper;
+        player1_in_game = true;
+        MyPacket init_packet;
+        init_packet << MyPacket::PacketID::INGAME1;
+        init_packet << true;
+        net_client->socket.send(&init_packet.data()[0], init_packet.length());
+    }
+    if ((player2_in_game && player1_in_game) || (!multiplayer))
+    {
+#pragma unroll(1)
+        for (int i = 0; i < unit_count; i++)
+        {
+            units[i].setUnitCount(team_size, p1_unit_sniper, p2_unit_sniper, p1_unit_medic, p2_unit_medic);
+            units[i].setUnitType();
+            units[i].updateUnitDetails();
 
-        (units[i].unit_health > 0) ? units[i].visibility = true : units[i].visibility = false;
 
-        (game_time >= 0) ? units[i].timed_unit_check = false : units[i].timed_unit_check = true;
+            if (unit_selected < 7 && units[unit_selected].unit_health < 0)
+            {
+                if (!turn_over)
+                {
+                    unit_selected += 4;
+                    std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
+                    turn_over = true;
+                }
+                else
+                {
+                    unit_selected -= 3;
+                    std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
+                    turn_over = false;
+                }
+            }
+            else if (unit_selected > 7 && units[unit_selected].unit_health < 0)
+            {
+                unit_selected = 0;
+
+                std::cout << "UNIT SELECTED: " << unit_selected << std::endl;
+            }
+
+            (game_time >= 0) ? units[i].timed_unit_check = false : units[i].timed_unit_check = true;
+        }
+
+
+        if (multiplayer)
+        {
+            turn_over = net_client->turn_over;
+            unit_selected = net_client->unit_selected;
+            if (game_state == GameState::BATTLE)
+            {
+                unitPacket();
+                unitCo();
+                updateUnits();
+            }
+        }
+
+
+        if (!tiles.getWalkable(units[unit_selected]))
+        {
+            units[unit_selected].ap += units[unit_selected].getMovementCost();
+            units[unit_selected].sprite()->setX(old_x_pos);
+            units[unit_selected].sprite()->setY(old_y_pos);
+        }
     }
 
     battle_camera.lookAt(ASGE::Point2D{
@@ -987,20 +1200,28 @@ void ASGENetGame::renderGame()
 void ASGENetGame::renderGameplay()
 {
     renderer->setProjectionMatrix(menu_camera.getView());
+    character_select_play.goRender(renderer.get());
     for (int i = 0; i < amount_character_select_buttons; i++)
     {
-        character_select_buttons[i].goRender(renderer.get());
+        if ((!player2 && (i <= 2 || (i > 5 && i <= 8))) || (!player1 && (i > 8 || (i <= 5 && i > 2))))
+        {
+            character_select_buttons[i].goRender(renderer.get());
+        }
     }
     for (int i = 0; i < amount_character_select_pngs; i++)
     {
-        character_select_pngs[i].visibility = true;
-        character_select_pngs[i].goRender(renderer.get());
-        renderer->renderText(amount_characters[i]);
+        if ((!player2 && ((i == 0) || (i == 2) || (i == 4))) || (!player1 && ((i == 1) || (i == 3) || (i == 5))))
+        {
+            character_select_pngs[i].visibility = true;
+            character_select_pngs[i].goRender(renderer.get());
+            renderer->renderText(amount_characters[i]);
+        }
     }
 }
 
 void ASGENetGame::renderBattleMap()
 {
+
     renderer->setProjectionMatrix(battle_camera.getView());
 
     tiles.renderTiles(renderer.get());
@@ -1117,4 +1338,107 @@ void ASGENetGame::setupTextRender(
     text.setPositionX(x_pos);
     text.setPositionY(y_pos);
     text.setColour(colour);
+}
+void ASGENetGame::sendIntPacket(int data)
+{
+    MyPacket int_packet;
+    int_packet << MyPacket::PacketID::INT;
+    int_packet << data;
+    net_client->socket.send(&int_packet.data()[0], int_packet.length());
+}
+void ASGENetGame::sendGeneralStatePacket(int state)
+{
+    MyPacket state_packet;
+    state_packet << MyPacket::PacketID::STATE;
+    state_packet << state;
+
+    net_client->socket.send(&state_packet.data()[0], state_packet.length());
+}
+void ASGENetGame::sendInitPacket()
+{
+    MyPacket init_packet;
+    init_packet << MyPacket::PacketID::BOOL;
+    init_packet << true;
+    net_client->socket.send(&init_packet.data()[0], init_packet.length());
+}
+void ASGENetGame::player2Packet()
+{
+    MyPacket player_packet;
+    player_packet << MyPacket::PacketID::TEAM2;
+    player_packet << p2_unit_medic;
+    player_packet << p2_unit_sniper;
+    net_client->socket.send(&player_packet.data()[0], player_packet.length());
+}
+void ASGENetGame::player1Packet()
+{
+    MyPacket player_packet;
+    player_packet << MyPacket::PacketID::TEAM1;
+    player_packet << p1_unit_medic;
+    player_packet << p1_unit_sniper;
+    net_client->socket.send(&player_packet.data()[0], player_packet.length());
+}
+void ASGENetGame::endTurnPacket()
+{
+    MyPacket turn_packet;
+    turn_packet << MyPacket::PacketID::TURN;
+    turn_packet << turn_over;
+    turn_packet << unit_selected;
+    net_client->socket.send(&turn_packet.data()[0], turn_packet.length());
+}
+void ASGENetGame::unitPacket()
+{
+    for (int i = 0; i < unit_count; ++i)
+    {
+        BattleUnit unit = BattleUnit();
+
+        unit.unit_health = units[i].unit_health;
+        if (units[i].unit_health > 0)
+        {
+            units[i].visibility = true;
+        }
+        else
+        {
+            units[i].visibility = false;
+        }
+        unit.visibility = units[i].visibility;
+
+
+        MyPacket unit_packet;
+
+        unit_packet << MyPacket::PacketID::PLAYER;
+        unit_packet << i;
+        unit_packet << unit;
+        net_client->socket.send(&unit_packet.data()[0], unit_packet.length());
+    }
+}
+void ASGENetGame::updateUnits()
+{
+    if ((!player2 && turn_over) || (!player1 && !turn_over))
+    {
+        for (int i = 0; i < unit_count; ++i)
+        {
+            units[i].unit_health = net_client->units[i].unit_health;
+            units[i].unit_health_string = std::to_string(static_cast<int>(units[i].unit_health));
+            units[i].visibility = net_client->units[i].visibility;
+            units[i].sprite()->setX(net_client->units[i].xpos);
+            units[i].sprite()->setY(net_client->units[i].ypos);
+        }
+    }
+}
+void ASGENetGame::unitCo()
+{
+    for (int i = 0; i < unit_count; ++i)
+    {
+
+
+        float x = units[i].sprite()->getX();
+        float y = units[i].sprite()->getY();
+        MyPacket unit_Co_packet;
+
+        unit_Co_packet << MyPacket::PacketID::COORDINATES;
+        unit_Co_packet << i;
+        unit_Co_packet << x;
+        unit_Co_packet << y;
+        net_client->socket.send(&unit_Co_packet.data()[0], unit_Co_packet.length());
+    }
 }

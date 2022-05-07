@@ -19,142 +19,166 @@
 #include <tmxlite/Tileset.hpp>
 #include <vector>
 
-class ASGENetGame : public ASGE::OGLGame
-{
- public:
-  explicit ASGENetGame(const ASGE::GameSettings& settings);
-  ~ASGENetGame() override;
+class ASGENetGame : public ASGE::OGLGame {
+public:
+    explicit ASGENetGame(const ASGE::GameSettings &settings);
+    ~ASGENetGame() override;
 
-  ASGENetGame(const ASGENetGame&) = delete;
-  ASGENetGame& operator=(const ASGENetGame&) = delete;
+    ASGENetGame(const ASGENetGame &) = delete;
+    ASGENetGame &operator=(const ASGENetGame &) = delete;
 
- private:
-  void init();
-  void initText();
-  void initMenu();
-  void initLobby();
-  void initGame();
-  void initCharacterSelection();
-  void initBattle();
-  void initUnits();
-  void initUnitSprite();
+private:
+    void init();
+    void initText();
+    void initMenu();
+    void initLobby();
+    void initGame();
+    void initCharacterSelection();
+    void initCharacterSelectionButtons();
+    void initCharacterSelectionPngs();
+    void initCharacterSelectionText();
+    void initBattle();
+    void initUnits();
+    void initUnitSprite();
 
-  void keyHandler(ASGE::SharedEventData data);
-  void keyHandlerMenu(const auto* key);
-  void keyHandlerLobby(const auto* key);
-  void keyHandlerGame(const auto* key);
-  void keyHandlerGameplay(const auto* key);
-  void keyHandlerBattleMap(const auto* key);
-  void keyHandlerBattleMapUnits(const auto* key);
-  void keyHandlerBattleMapCheats(const auto* key);
-  void clickHandler(ASGE::SharedEventData data);
-  void clickHandlerCharacterSelection(ASGE::SharedEventData data);
-  void clickHandlerBattleMap(ASGE::SharedEventData data);
-  void clickHandlerBattleMapAbilities(int i);
+    void keyHandler(ASGE::SharedEventData data);
+    void keyHandlerMenu(const auto *key);
+    void keyHandlerLobby(const auto *key);
+    void keyHandlerGame(const auto *key);
+    void keyHandlerGameplay(const auto *key);
+    void keyHandlerBattleMap(const auto *key);
+    void keyHandlerBattleMapUnits(const auto *key);
+    void keyHandlerBattleMapUnitsEndTurn();
+    void keyHandlerBattleMapCheats(const auto *key);
+    void clickHandler(ASGE::SharedEventData data);
+    void clickHandlerCharacterSelection(ASGE::SharedEventData data);
+    void clickHandlerBattleMap(ASGE::SharedEventData data);
+    void clickHandlerBattleMapAbilities(int i);
 
-  void update(const ASGE::GameTime& us) override;
-  void updateLobby();
-  void updateLobbyChat();
-  void updateGame(const ASGE::GameTime& us);
-  void updateGameplay();
-  void updateBattleMap(const ASGE::GameTime& us);
+    void update(const ASGE::GameTime &us) override;
+    void updateLobby();
+    void updateLobbyChat();
+    void updateGame(const ASGE::GameTime &us);
+    void updateGameplay();
+    void updateBattleMap(const ASGE::GameTime &us);
 
-  void render(const ASGE::GameTime& us) override;
-  void renderMenu();
-  void renderLobby();
-  void renderGame();
-  void renderGameplay();
-  void renderBattleMap();
 
-  bool checkUnitRange(int i);
-  void fixedUpdate(const ASGE::GameTime& us) override;
+    void render(const ASGE::GameTime &us) override;
+    void renderMenu();
+    void renderLobby();
+    void renderGame();
+    void renderGameplay();
+    void renderBattleMap();
 
-  void setupInitSprites(
-    std::unique_ptr<ASGE::Sprite>& sprite, const std::string& texture_file_path, float width,
-    float height, int16_t z_order, float x_pos, float y_pos, float scale);
-  void
-  setupTextRender(ASGE::Text& text, int16_t z_order, float x_pos, float y_pos, ASGE::Colour colour);
+    bool checkUnitRange(int i);
+    void fixedUpdate(const ASGE::GameTime &us) override;
 
-  std::vector<std::unique_ptr<GameComponent>> game_components;
-  std::string key_callback_id{}; /**< Key Input Callback ID. */
-  std::string mouse_callback_id{};
-  GCNetClient* net_client;
+    void setupInitSprites(
+            std::unique_ptr<ASGE::Sprite> &sprite, const std::string &texture_file_path, float width,
+            float height, int16_t z_order, float x_pos, float y_pos, float scale);
+    void
+    setupTextRender(ASGE::Text &text, int16_t z_order, float x_pos, float y_pos, ASGE::Colour colour);
 
-  // GENERAL VARIABLES
-  int font_index{};
-  float game_window_width  = static_cast<float>(ASGE::SETTINGS.window_width);
-  float game_window_height = static_cast<float>(ASGE::SETTINGS.window_height);
+    void sendIntPacket(int data);
+    void sendGeneralStatePacket(int state);
+    void sendInitPacket();
+    std::vector<std::unique_ptr<GameComponent>> game_components;
+    std::string key_callback_id{}; /**< Key Input Callback ID. */
+    std::string mouse_callback_id{};
+    GCNetClient *net_client;
 
-  enum GeneralState // Control general video game states
-  {
-    MENU  = 1,
-    LOBBY = 2,
-    GAME  = 3,
-  };
-  int general_state = GeneralState::MENU;
+    // GENERAL VARIABLES
+    int font_index{};
+    float game_window_width = static_cast<float>(ASGE::SETTINGS.window_width);
+    float game_window_height = static_cast<float>(ASGE::SETTINGS.window_height);
 
-  // MENU VARIABLES
-  ASGE::Camera menu_camera;
-  std::unique_ptr<ASGE::Sprite> menu_background = nullptr;
-  Buttons menu_buttons[3];
-  int amount_menu_buttons            = 0;
-  float padding_between_menu_buttons = 10;
-  float top_of_screen_padding        = 250;
+    enum GeneralState// Control general video game states
+    {
+        MENU = 1,
+        LOBBY = 2,
+        GAME = 3,
+    };
+    int general_state = GeneralState::MENU;
 
-  int menu_option = 0; // Control menu states.
-                       // No enum as an integer achieves the same thing with less code.
+    // MENU VARIABLES
+    ASGE::Camera menu_camera;
+    std::unique_ptr<ASGE::Sprite> menu_background = nullptr;
+    Buttons menu_buttons[3];
+    int amount_menu_buttons = 0;
+    float padding_between_menu_buttons = 10;
+    float top_of_screen_padding = 250;
 
-  // LOBBY VARIABLES
-  std::unique_ptr<ASGE::Sprite> lobby_background = nullptr;
-  std::unique_ptr<ASGE::Sprite> lobbyP1          = nullptr;
-  std::unique_ptr<ASGE::Sprite> lobbyP2          = nullptr;
-  std::string user_input;
-  std::string old_user_input;
-  ASGE::Text text_input{};
-  ASGE::Text lobby_text;
-  ASGE::Text chat_text;
+    int menu_option = 0;// Control menu states.
+                        // No enum as an integer achieves the same thing with less code.
 
-  bool join_host        = false;
-  int lobby_connections = 0;
+    // LOBBY VARIABLES
+    std::unique_ptr<ASGE::Sprite> lobby_background = nullptr;
+    std::unique_ptr<ASGE::Sprite> lobbyP1 = nullptr;
+    std::unique_ptr<ASGE::Sprite> lobbyP2 = nullptr;
+    std::string user_input;
+    std::string old_user_input;
+    ASGE::Text text_input{};
+    ASGE::Text lobby_text;
+    ASGE::Text chat_text;
 
-  // CHARACTER SELECTION VARIABLES
-  Buttons character_select_buttons[12];
-  int amount_character_select_buttons = 0;
-  GameObject character_select_pngs[6];
-  int amount_character_select_pngs = 0;
-  ASGE::Text amount_characters[6]{};
+    bool join_host = false;
+    int lobby_connections = 0;
 
-  std::unique_ptr<ASGE::Sprite> character_sniper = nullptr;
-  std::unique_ptr<ASGE::Sprite> character_medic  = nullptr;
-  std::unique_ptr<ASGE::Sprite> character_gunner = nullptr;
+    // CHARACTER SELECTION VARIABLES
+    Buttons character_select_buttons[12];
+    Buttons character_select_play;
+    int amount_character_select_buttons = 0;
+    GameObject character_select_pngs[6];
+    int amount_character_select_pngs = 0;
+    ASGE::Text amount_characters[6]{};
 
-  // BATTLE MAP VARIABLES
-  ASGE::Camera battle_camera;
-  Player player;
-  bool turn_over = false;
-  BattleUnit units[8];
-  int unit_count        = 8;
-  int team_size         = 4;
-  int unit_selected     = 0;
-  int old_unit_selected = 0;
-  int p1_unit_sniper    = 1;
-  int p1_unit_medic     = 1;
-  int p2_unit_sniper    = 1;
-  int p2_unit_medic     = 1;
-  ASGE::Text unit_health_text{};
-  std::string unit_ap{};
-  ASGE::Text unit_ap_text{};
-  float game_time = static_cast<float>(0.1);
-  GameObject ability_button;
-  bool ability_mode = false;
+    std::unique_ptr<ASGE::Sprite> character_sniper = nullptr;
+    std::unique_ptr<ASGE::Sprite> character_medic = nullptr;
+    std::unique_ptr<ASGE::Sprite> character_gunner = nullptr;
 
-  enum GameState // Control game states.
-  {
-    GAMEPLAY = 1,
-    BATTLE   = 2,
-  };
-  int game_state = GameState::GAMEPLAY;
+    // BATTLE MAP VARIABLES
+    ASGE::Camera battle_camera;
+    Player player;
+    bool turn_over = false;
+    BattleUnit units[8];
+    int unit_count = 8;
+    int team_size = 4;
+    int unit_selected = 0;
+    int old_unit_selected = 0;
+    int p1_unit_sniper = 1;
+    int p1_unit_medic = 1;
+    int p2_unit_sniper = 1;
+    int p2_unit_medic = 1;
+    ASGE::Text unit_health_text{};
+    std::string unit_ap{};
+    ASGE::Text unit_ap_text{};
+    float game_time = static_cast<float>(0.1);
+    GameObject ability_button;
+    bool ability_mode = false;
+    float old_x_pos = 0;
+    float old_y_pos = 0;
 
-  // TILED VARIABLES
-  Tiles tiles;
+    enum GameState// Control game states.
+    {
+        GAMEPLAY = 1,
+        BATTLE = 2,
+    };
+    int game_state = GameState::GAMEPLAY;
+
+    // TILED VARIABLES
+    Tiles tiles;
+
+    // Multiplayer Variables
+    bool multiplayer = false;
+    bool player1 = false;
+    bool player2 = false;
+    bool player1_in_game = false;
+    bool player2_in_game = false;
+
+    void player2Packet();
+    void player1Packet();
+    void endTurnPacket();
+    void unitPacket();
+    void updateUnits();
+    void unitCo();
 };
